@@ -1,4 +1,4 @@
-( function() { 
+( function() {
 
 "use strict";
 
@@ -38,7 +38,7 @@ function CCWebMEncoder( settings ) {
 	CCFrameEncoder.call( this );
 
 	settings.quality = ( settings.quality / 100 ) || .8;
-	
+
 	this.settings = settings;
 	this.encoder = new Whammy.Video( settings.framerate, settings.quality );
 
@@ -54,7 +54,7 @@ CCWebMEncoder.prototype.add = function( canvas ) {
 
 CCWebMEncoder.prototype.save = function( callback ) {
 
-	var output = this.encoder.compile(); 
+	var output = this.encoder.compile();
 	var blob = new Blob( [ output ], { type: "octet/stream" } );
 	var url = window.URL.createObjectURL( blob );
 	callback( url );
@@ -132,7 +132,7 @@ CCFFMpegServerEncoder.prototype.safeToProceed = function() {
 
   	this.canvas = document.createElement( 'canvas' );
   	this.ctx = this.canvas.getContext( '2d' );
-	
+
 }
 
 CCGIFEncoder.prototype = Object.create( CCFrameEncoder );
@@ -161,7 +161,7 @@ CCGIFEncoder.prototype.add = function( canvas ) {
 CCGIFEncoder.prototype.stop = function() {
 
 	this.encoder.finish();
-	
+
 }
 
 CCGIFEncoder.prototype.save = function( callback ) {
@@ -195,7 +195,7 @@ function CCGIFEncoder( settings ) {
 		quality: settings.quality,
 		workerScript: settings.workersPath + 'gif.worker.js'
 	} );
-  		
+
     this.encoder.on( 'progress', function( progress ) {
         if ( this.settings.onProgress ) {
             this.settings.onProgress( progress )
@@ -265,7 +265,7 @@ function CCapture( settings ) {
 	_settings.framerate = _settings.framerate || 60;
 	_verbose = _settings.verbose || false;
 	_settings.step = 1000.0 / _settings.framerate;
-	
+
 	_log( 'Step is set to ' + _settings.step + 'ms' );
 
     var _encoders = {
@@ -312,7 +312,7 @@ function CCapture( settings ) {
 		_oldPerformanceNow = window.performance.now,
 		_oldGetTime = window.Date.prototype.getTime;
 	// Date.prototype._oldGetTime = Date.prototype.getTime;
-	
+
 	var media = [];
 
     function _queueCheck() {
@@ -325,6 +325,8 @@ function CCapture( settings ) {
 
 	function _init() {
 		
+		var extendElement = { get: hookCurrentTime, configurable: true }
+
 		_log( 'Capturer start' );
 		_time = window.Date.now();
 		_performanceTime = window.performance.now();
@@ -336,8 +338,8 @@ function CCapture( settings ) {
 			return _time;
 		};
 		window.setTimeout = function( callback, time ) {
-			var t = { 
-				callback: callback, 
+			var t = {
+				callback: callback,
 				time: time,
 				triggerTime: _time + time
 			};
@@ -356,8 +358,8 @@ function CCapture( settings ) {
 			}
 		};
 		window.setInterval = function( callback, time ) {
-			var t = { 
-				callback: callback, 
+			var t = {
+				callback: callback,
 				time: time,
 				triggerTime: _time + time
 			};
@@ -384,23 +386,28 @@ function CCapture( settings ) {
 			return this._hookedTime;
 		};
 
-		Object.defineProperty( HTMLVideoElement.prototype, 'currentTime', { get: hookCurrentTime } )
-		Object.defineProperty( HTMLAudioElement.prototype, 'currentTime', { get: hookCurrentTime } )
+		if (window.HTMLVideoElement) {
+			Object.defineProperty(HTMLVideoElement.prototype, 'currentTime', extendElement)
+		}
+
+		if (window.HTMLAudioElement) {
+			Object.defineProperty(HTMLAudioElement.prototype, 'currentTime', extendElement)
+		}
 
 	}
-	
-	function _start() {
+
+	function _start(element) {
 		_init();
-		_encoder.start();
+		_encoder.start(element);
 		_capturing = true;
 	}
-	
+
 	function _stop() {
 		_capturing = false;
 		_encoder.stop();
 		_destroy();
 	}
-	
+
 	function _destroy() {
 		_log( 'Capturer stop' );
 		window.setTimeout = _oldSetTimeout;
@@ -413,13 +420,13 @@ function CCapture( settings ) {
 	}
 
 	function _capture( canvas ) {
-	
+
 		if( _capturing ) {
 			_encoder.add( canvas );
 		}
-		
+
 	}
-	
+
 	function _process() {
 
 		if ( !_queued || !_encoder.safeToProceed() ) {
@@ -455,20 +462,20 @@ function CCapture( settings ) {
 				continue;
 			}
 		}
-		
+
         var cb =  _requestAnimationFrameCallback;
 		if( cb ) {
 			_requestAnimationFrameCallback = null;
 			cb( _time - g_startTime );
         }
 	}
-	
+
 	function _save( callback ) {
 
 		_encoder.save( callback );
-		
+
 	}
-	
+
 	function _log( message ) {
 		if( _verbose ) console.log( message );
 	}
